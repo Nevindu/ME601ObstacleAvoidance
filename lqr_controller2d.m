@@ -26,8 +26,8 @@ function [v, phi] = lqr_controller2d(x,Y,params)
 % Q = diag([1 1 10]);
 % R = 0.1*diag([1, 1]);
 
-Q = 1*diag([1 1 10]);
-R = 0.1*diag([1, 1]);
+Q = diag([1000 1000 10]);
+R = diag([1, 1]);
 
 
 %% System Matrices

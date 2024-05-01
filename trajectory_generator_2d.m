@@ -65,7 +65,7 @@ waypoints = [3 14 14 3 3;
 % =================== Your waypoint choice ends here ===================
 
 % Objective order to minimize
-k_r = 2; % Minimize snap
+k_r = 3; % Minimize jerk
 
 % Polynomial parameters
 n = 4; % Polynomial order

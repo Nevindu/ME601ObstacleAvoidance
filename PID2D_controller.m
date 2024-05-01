@@ -133,8 +133,8 @@ function PID2D_controller()
         prev_error_theta = error_theta;
     end
 
-     writerObj = VideoWriter('pid_loop');
-    writerObj.FrameRate = 10;
+     writerObj = VideoWriter('pid_sine');
+    writerObj.FrameRate = 30;
     % set the seconds per image
     % open the video writer
     open(writerObj);
