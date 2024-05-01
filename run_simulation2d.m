@@ -34,7 +34,7 @@ pause
 
 % real-time: if set to true, the program will slow execution to
 % match real time.
-real_time = true;
+real_time = false;
 
 
 % Load trajectory csv
@@ -87,6 +87,7 @@ theta_tol   = 0.01;
 fprintf('Simulation Running....')
 % Main loop
 figure(1);
+hMarker = plot(x0(1), x0(2), 'ko', 'MarkerFaceColor', 'k'); % Marker for the current position
 hold on;
 desired_x = [];
 desired_y = [];
@@ -109,13 +110,20 @@ for iter = 1:max_iter
     desired_state = trajhandle(time + cstep);
     desired_x = [desired_x, desired_state.y(1)];
     desired_y = [desired_y, desired_state.y(2)];
-    % QP{qn}.UpdateQuadPlot(x{qn}, [desired_state.y(1:3); desired_state.y(1:3)], time + cstep);
-    % set(h_title, 'String', sprintf('iteration: %d, time: %4.2f', iter, time + cstep))
-   
-     plot(desired_x, desired_y, 'b');
-    hold on;
-    plot(xsave(:,1), xsave(:,2), 'r'); % plotting in red color
 
+   
+    h1 = plot(desired_x, desired_y, 'b--', 'LineWidth', 2,'DisplayName', 'Reference Trajectory');
+    hold on;
+    h2 = plot(xsave(:,1), xsave(:,2), 'r', 'LineWidth', 2,'DisplayName', 'Controller Trajectory'); % Plotting trajectory in red
+
+    % Add a marker for the current position
+    set(hMarker, 'XData', xsave(end,1), 'YData', xsave(end,2));
+
+    % Update title with the current time
+    title(sprintf('Simulation Time: %.2f seconds', time + cstep));
+    legend([h1,h2]);
+    F(iter) =  getframe(gcf);
+    drawnow;
     
     time = time + cstep; % Update simulation time
     t = toc;
@@ -137,35 +145,25 @@ for iter = 1:max_iter
 end
 
 %% ************************* POST PROCESSING *************************
+% create the video writer with 1 fps
+writerObj = VideoWriter('lqr_loop');
+writerObj.FrameRate = 10;
+% set the seconds per image
+% open the video writer
+open(writerObj);
+% write the frames to the video
+for i=1:length(F)
+    % convert the image to a frame
+    frame = F(i) ;    
+    writeVideo(writerObj, frame);
+end
+% close the writer object
+close(writerObj);
+
 % Truncate xtraj and ttraj
 
 xtraj = xtraj(1:iter*nstep,:);
 ttraj = ttraj(1:iter*nstep);
-
-% 
-% % Legend on Figure 1
-% figure(1)
-% % legend('Trajectory','Quad','$\mathbf{r}(t)$','Interpreter','Latex','location','best');
-% legend('Reference traj','Quad traj','$\mathbf{r}(t)$','Interpreter','Latex','location','best');
-% 
-% % Plot the saved position and velocity of each robot
-% for qn = 1:nquad
-%     % Truncate saved variables
-%     QP{qn}.TruncateHist();
-%     % Plot position for each quad
-%     h_pos{qn} = figure('Name', ['Quad ' num2str(qn) ' : position']);
-%     plot_state(h_pos{qn}, QP{qn}.state_hist(1:3,:), QP{qn}.time_hist, 'pos', 'vic');
-%     plot_state(h_pos{qn}, QP{qn}.state_des_hist(1:3,:), QP{qn}.time_hist, 'pos', 'des');
-%     legend('Quad','Traj')
-%     % Plot velocity for each quad
-%     h_vel{qn} = figure('Name', ['Quad ' num2str(qn) ' : velocity']);
-%     plot_state(h_vel{qn}, QP{qn}.state_hist(4:6,:), QP{qn}.time_hist, 'vel', 'vic');
-%     plot_state(h_vel{qn}, QP{qn}.state_des_hist(4:6,:), QP{qn}.time_hist, 'vel', 'des');
-%     legend('Quad','Traj')
-% end
-% if(~isempty(err))
-%     error(err);
-% end
 
 %% **************** MEAN SQUARED ERROR (MSE) ***************
 posmse = 0; % MSE of position
@@ -182,3 +180,14 @@ thetamse = immse(thetareal, thetaref);
 
 fprintf('The position mean squared error is %f \n', posmse);
 fprintf('The heading angle mean squared error is %f', thetamse);
+
+figure;
+plot(ttraj, xtraj(:,3), 'r', 'LineWidth', 2, 'DisplayName', 'Controller Heading');
+hold on;
+plot(ttraj, M(1:length(ttraj),4), 'b--', 'LineWidth', 2, 'DisplayName', 'Desired Heading');
+xlabel('Time (s)');
+ylabel('Heading (radians)');
+legend('Actual Heading', 'Desired Heading');
+title('Heading Tracking');
+legend('show');
+grid on;

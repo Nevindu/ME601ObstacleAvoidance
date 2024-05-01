@@ -1,6 +1,6 @@
 % Parameters
 L = 2;                % Wheelbase
-deltaT = 0.02;           % Sampling time
+deltaT = 0.01;           % Sampling time
 
 % Load trajectory data
 data = readmatrix('traj2d.csv');
@@ -17,7 +17,7 @@ nlobj = nlmpc(3, 3, 2);
 
 nlobj.ControlHorizon = 20;
 nlobj.PredictionHorizon = 20;
-nlobj.Ts = 0.02;
+nlobj.Ts = 0.01;
 
 % Specify the prediction model
 nlobj.Model.StateFcn = @(x, u) [
@@ -39,6 +39,7 @@ nlobj.MV(2).Max = pi/4;  % Maximum steering angle
 
 % Define the Weights on states and inputs
 %nlobj.Weights.OutputVariables = [50 50 0];
+nlobj.Weights.OutputVariables = [1 1 0.1];
 nlobj.Weights.ManipulatedVariables = [0.1 0.1];
 nlobj.Weights.ManipulatedVariablesRate = [1 1];
 
@@ -55,17 +56,27 @@ u0 = [0; 0];     % Initial input [v phi]
 xHistory = x0';
 
 mv = [1,0];
-for k = 1:length(t)
+T = 10;
+time = 0:deltaT:T;
+for t  = time
+ % Find row of the desired state at time t
+    tr = round(t, 2); % round given time t to closest multiple of 0.01
+    row = int64(tr / 0.01) + 1;
+
+    % Ensure the row does not exceed matrix dimensions
+    if row > size(data, 1)
+        row = size(data, 1);
+    end
     % Update the reference for the current time step
     %nlobj.Model.Reference = [refX(k) refY(k) refTheta(k)];
-    
+    %nlobj.Model.Reference = data(k,2:4); 
     % Solve the MPC optimization problem
-    ref = data(k,2:4);
-    [mv, info] = nlmpcmove(nlobj, x0, mv, data(:,2:4));
+    ref = data(row,2:4);
+    [mv, info] = nlmpcmove(nlobj, x0, mv, ref);
     mv;
     % Update the state
     x0 = nlobj.Model.StateFcn(x0, mv);
-    u0 = mv;
+    %u0 = mv;
     
     % Store the history
     xHistory = [xHistory; x0'];

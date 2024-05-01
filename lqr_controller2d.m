@@ -23,45 +23,78 @@ function [v, phi] = lqr_controller2d(x,Y,params)
 % NOTE: This function needs to return in less than 0.01 seconds
 
 %% Gain Matrices
-Q =  10*diag([.5 .5 1.5]);
-R =  diag([1, 1]);
+% Q = diag([1 1 10]);
+% R = 0.1*diag([1, 1]);
+
+Q = 1*diag([1 1 10]);
+R = 0.1*diag([1, 1]);
 
 
 %% System Matrices
 % Linearize around reference point
-theta_d = Y.y(3);
-v_d = Y.dy(1)/cos(theta_d);
-phi_d =  atan( params.L*( (Y.dy(1)*Y.ddy(2) - Y.ddy(1)*Y.dy(1))/(Y.dy(1)^2 + Y.dy(2)^2)^(3/2) ) );
-if isnan(phi_d)
-    phi_d = 0;
+K = zeros(2,3);
+
+if 1 %Y.dy(1) == 0
+    %% Precomputed LQR constant feedback gain matrix
+    K = [2.2361    0.0000    0.0000;
+        -0.0000    2.2361    4.8933;];
+    A = [0 0 0;
+         0 0 1;
+         0 0 0];
+    
+    B = [1 0;
+         0 0;
+         0 0.5];
+    K = lqr(A,B,Q,R,0);
+    u_d = [1 0];
+else
+    theta_d = Y.y(3);
+    x_d = Y.y(1);
+    y_d = Y.y(2);
+    x_dd = Y.dy(1);
+    y_dd = Y.dy(2);
+    L = 2;
+    v_d = x_dd/cos(theta_d);
+    phi_d =  atan( L*( (x_d*y_dd - x_dd*y_d)/(x_d^2 + y_d^2)^(3/2) ) );
+    if isnan(phi_d)
+        phi_d = 0;
+    end
+    A = [0 0 -y_d;
+         0 0 x_d;
+         0 0 0];
+    
+    
+    B = [cos(theta_d) 0;
+         sin(theta_d) 0;
+         (1/L)*tan(phi_d) (v_d/L*cos(phi_d)*cos(phi_d))];
+    K = lqr(A,B,Q,R,0);
+    u_d = [v_d phi_d];
 end
-% A = [0 0 -Y.dy(2);
-%      0 0 Y.dy(1);
-%      0 0 0];
-% 
-% B = [cos(theta_d) 0;
-%      sin(theta_d) 0;
-%      (1/params.L)*tan(phi_d) (v_d/params.L*cos(phi_d)*cos(phi_d))];
-
-A = [0 0 0;
-     0 0 1;
-     0 0 0];
-
-B = [1 0;
-     0 0;
-     0 0.5];
-
-%% Precomputed LQR constant feedback gain matrix
-
-
-K = [2.2361    0.0000    0.0000;
-    -0.0000    2.2361    4.8933;];
-%K = lqr(A,B,Q,R,0);
-
+u_d = [ 1 0];
 %% Error dynamics
-e_x = x -Y.y;
-%u_d = [v_d phi_d];
-u_d = [1 0];
+%e_x = x -Y.y;
+e_pos = [x(1) - Y.y(1); x(2) - Y.y(2)];
+
+ref = Y.y(3);
+act = x(3);
+% if (ref > 0 && act > 0) || (ref <= 0 && act <= 0)
+%     e_theta = ref - act;
+% elseif ref <= 0 && act > 0
+%     if abs(ref - act) < abs(2 * pi + ref - act)
+%         e_theta = -abs(act - ref);
+%     else
+%         e_theta = abs(2 * pi + ref - act);
+%     end
+% else
+%     if abs(ref - act) < abs(2 * pi - ref + act)
+%         e_theta = abs(act - ref);
+%     else
+%         e_theta = -abs(2 * pi - ref + act);
+%     end
+% end
+e_theta = x(3) - Y.y(3);
+e_theta = mod(e_theta + pi/2, 2*pi/2) - pi/2;
+e_x = [e_pos;e_theta];
 
 
 %% control law
@@ -70,6 +103,8 @@ u = -K*e_x + u_d;
 %% Control Inputs
 v = u(1);
 phi = u(2);
+
+[u_d [v phi]]
 
 % if phi > pi/4
 %     phi = pi/4

@@ -32,13 +32,16 @@ t_flight = 10 ; % [sec] Flight Duration
 % 2D waypoints
 % waypoints = [6,3,6,3,6,6;
 %             2,5,9,13,16,18]
-
 waypoints = [2,5,9,13,16,18;
              6,3,6,3,6,6];
+% 
 
 
+% straight line
 % waypoints = [0 2 4 6 8 10,
 %              0 0 0 0 0 0];
+
+
 % nobs = 3;
 % obstacles = struct('position', {}, 'radius', {});
 % obstacles(1).position = [5,6];
@@ -48,10 +51,15 @@ waypoints = [2,5,9,13,16,18;
 % obstacles(3).position = [13,6];
 % obstacles(3).radius = 1;
 
-waypoints = [1,1,1;
-             0,5, 8]
+% waypoints = [1,1,1;
+%              0,5, 8]
 obstacles(1).position = [1,2];
 obstacles(1).radius = 1;
+
+
+% Road turn
+waypoints = [3 14 14 3 3;
+            5 5 15  15  5];
 
 % ====================================================================
 % =================== Your waypoint choice ends here ===================
@@ -232,14 +240,32 @@ hold on
 %plot(cpx,cpy,'og');
 
 %plot obstacles
-hold on
-for k=1:length(obstacles)
-    viscircles(obstacles(k).position, obstacles(k).radius, 'Color', 'b');
-end
+% hold on
+% for k=1:length(obstacles)
+%     viscircles(obstacles(k).position, obstacles(k).radius, 'Color', 'b');
+% end
+
+% draw road lines
+% Define the endpoints of the line segments
+x1 = [0, 9];    y1 = [10, 10]; % First line segment (horizontal)
+x2 = [0, 15];   y2 = [4, 4];   % Second line segment (horizontal)
+x3 = [9, 9];    y3 = [10, 16]; % Third line segment (vertical)
+x4 = [15, 15];  y4 = [4, 16];  % Fourth line segment (vertical)
+
+% Create a new figure
+% % Plot each line segment
+% hold on; % Hold on to plot all lines on the same graph
+% plot(x1, y1, 'k', 'LineWidth', 2); % Plot the first line segment
+% plot(x2, y2, 'k', 'LineWidth', 2); % Plot the second line segment
+% plot(x3, y3, 'k', 'LineWidth', 2); % Plot the third line segment
+% plot(x4, y4, 'k', 'LineWidth', 2); % Plot the fourth line segment
+% %end draw road
+
 legend('Trajectory','Waypoints','Location','best')
 grid on
 xlabel('x [m]','Interpreter','latex')
 ylabel('y [m]','Interpreter','latex')
+%axis equal;
 end
 
 % function that returns a row vector of t^i

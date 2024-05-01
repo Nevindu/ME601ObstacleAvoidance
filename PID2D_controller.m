@@ -9,12 +9,12 @@ function PID2D_controller()
     L = 2;  % Wheelbase (m)
 
     % PID parameters for velocity
-    Kp_v = 1;   % Proportional gain
+    Kp_v = 10;   % Proportional gain
     Ki_v = 0.1; % Integral gain
     Kd_v = 0.05; % Derivative gain
 
     % PID parameters for heading
-    Kp_theta = 1;
+    Kp_theta = 10;
     Ki_theta = 0.1;
     Kd_theta = 0.05;
 
@@ -39,8 +39,8 @@ function PID2D_controller()
     figure('Name', 'Real-time Simulation Results', 'NumberTitle', 'off')
     hold on;
     grid on;
-    xlabel('X Position');
-    ylabel('Y Position');
+    xlabel('x [m]');
+    ylabel('y [m]');
     hRefTraj = plot(M(:,2), M(:,3), 'b--', 'LineWidth', 2);
     hTraj = plot(x, y, 'r', 'LineWidth', 2);
     hMarker = plot(x, y, 'ko', 'MarkerFaceColor', 'k'); % Marker for the current position
@@ -55,6 +55,7 @@ function PID2D_controller()
     thetaRef = [];
 
     % Simulation loop
+    frame = 1;
     for t = time
         % Find row of the desired state at time t
         tr = round(t, 2); % round given time t to closest multiple of 0.01
@@ -76,11 +77,35 @@ function PID2D_controller()
 
         % Heading PID Controller
         error_theta = wrapToPi(theta_ref - theta);
+        % if (theta_ref > 0 && theta > 0) || (theta_ref <= 0 && theta <= 0)
+        %     error_theta = theta_ref - theta;
+        % elseif theta_ref <= 0 && theta > 0
+        %     if abs(theta_ref - theta) < abs(2 * pi + theta_ref - theta)
+        %         error_theta = -abs(theta - theta_ref);
+        %     else
+        %         error_theta = abs(2 * pi + theta_ref - theta);
+        %     end
+        % else
+        %     if abs(theta_ref - theta) < abs(2 * pi - theta_ref + theta)
+        %         error_theta = abs(theta - theta_ref);
+        %     else
+        %         error_theta = -abs(2 * pi - theta_ref + theta);
+        %     end
+        % end
+
+
         integral_theta = integral_theta + error_theta * dt;
         derivative_theta = (error_theta - prev_error_theta) / dt;
         u_theta = Kp_theta * error_theta + Ki_theta * integral_theta + Kd_theta * derivative_theta;
 
+        delta = atan2(L * u_theta, v);
         % Update the state
+        % kinematicModel = bicycleKinematics;
+        % kinematicModel.WheelBase = L;
+        % [ts,s] = ode45(@(ts,s)derivative(kinematicModel,s,[u_v delta]),time:dt:time+1,[x v theta]);
+        % x = s(2,1);
+        % y = s(2,2);
+        % theta = s(2,3);
         v = v + u_v * dt; % Simple integrator for velocity control
         delta = atan2(L * u_theta, v); % Compute steering angle from heading control output
         x = x + v * cos(theta) * dt;
@@ -90,8 +115,11 @@ function PID2D_controller()
         % Update live trajectory plot
         set(hTraj, 'XData', [get(hTraj, 'XData'), x], 'YData', [get(hTraj, 'YData'), y]);
         set(hMarker, 'XData', x, 'YData', y);
-        title(sprintf('Trajectories at t = %.2fs', t));
+        title(sprintf('Simulation Time: %.2f seconds', t));
+        F(frame) = getframe(gcf) ;
+        frame = frame + 1;
         drawnow;
+
 
         % Store data for post-simulation analysis
         simTime = [simTime, t];
@@ -105,24 +133,38 @@ function PID2D_controller()
         prev_error_theta = error_theta;
     end
 
+     writerObj = VideoWriter('pid_loop');
+    writerObj.FrameRate = 10;
+    % set the seconds per image
+    % open the video writer
+    open(writerObj);
+    % write the frames to the video
+    for i=1:length(F)
+        % convert the image to a frame
+        frame = F(i) ;    
+        writeVideo(writerObj, frame);
+    end
+    % close the writer object
+    close(writerObj);
+
     % Plot velocity and heading after simulation
     figure;
     subplot(2, 1, 1);
     plot(simTime, velocities, 'r', simTime, vRef, 'b--');
     xlabel('Time (s)');
     ylabel('Velocity (m/s)');
-    legend('Actual Velocity', 'Desired Velocity');
+    legend('Controller Velocity', 'Desired Velocity');
     title('Velocity Tracking');
 
     subplot(2, 1, 2);
     plot(simTime, headings, 'r', simTime, thetaRef, 'b--');
     xlabel('Time (s)');
     ylabel('Heading (radians)');
-    legend('Actual Heading', 'Desired Heading');
+    legend('Controller Heading', 'Desired Heading');
     title('Heading Tracking');
 end
 
 function eWrapped = wrapToPi(e)
     % Wrap angle error to [-pi, pi]
-    eWrapped = mod(e + pi, 2*pi) - pi;
+    eWrapped = mod(e + pi/2, 2*pi/2) - pi/2;
 end

@@ -3,7 +3,7 @@ function [] = plot_traj2d(f)
 T = readmatrix(f);
 r = T(:,2:3)';
 figure(1)
-plot(r(1,:),r(2,:),'--k')
+plot(r(1,:),r(2,:),'--k', 'LineWidth',2)
 grid on
 hold on
 end
