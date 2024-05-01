@@ -30,12 +30,11 @@ t_flight = 10 ; % [sec] Flight Duration
 %              0, 0.5, 1, 1.5, 2, 1.5, 1, 0.5, 0];
 
 % 2D waypoints
-% waypoints = [6,3,6,3,6,6;
-%             2,5,9,13,16,18]
+% waypoints = [2,5,9,13,16,18;
+%               6,3,6,3,6,6]
 
-waypoints = [2,5,9,13,16,18;
-             6,3,6,3,6,6];
-
+% waypoints = [2,5,9,13,16,18;
+%              6,3,6,3,6,6];
 
 % waypoints = [0 2 4 6 8 10,
 %              0 0 0 0 0 0];
@@ -48,7 +47,7 @@ waypoints = [2,5,9,13,16,18;
 % obstacles(3).position = [13,6];
 % obstacles(3).radius = 1;
 
-waypoints = [1,1,1;
+waypoints = [1,2,1;
              0,5, 8]
 obstacles(1).position = [1,2];
 obstacles(1).radius = 1;
@@ -155,26 +154,26 @@ for segment = 1:m-2
         [0, 0, mask_acc.*get_tvec(t_bounds(segment+1), n, 2), 0, 0, mask_acc.*-get_tvec(t_bounds(segment+1), n, 2)];
 end
 
-% row
-% % obstacle contraints
-% slack = 0;
-% for segment = 1:m-2
-%     deltaT = t_bounds(segment+1) - t_bounds(segment);
-%     for k=1:n-1
-%         t_cp = t_bounds(segment) + (k/n)*deltaT; % t at control point
-%         for o = 1:length(obstacles)
-%             row = row + 1;
-%             Aeq(row, (n+1)*(segment -1)+1:(n+1)*segment) = get_tvec(t_cp,n,0);
-%             beq(row) = obstacles(o).position(obsPosIdx) -obstacles.radius - slack;
-% 
-%             row = row+1;
-%             Aeq(row, (n+1)*(segment -1)+1:(n+1)*segment) = -get_tvec(t_cp,n,0);
-%             beq(row) = -obstacles(o).position(obsPosIdx) -obstacles.radius - slack;
-%         end
-%     end
-% end
-% Aeq
-% beq
+row
+% obstacle contraints
+slack = 0;
+for segment = 1:m-2
+    deltaT = t_bounds(segment+1) - t_bounds(segment);
+    for k=1:n-1
+        t_cp = t_bounds(segment) + (k/n)*deltaT; % t at control point
+        for o = 1:length(obstacles)
+            row = row + 1;
+            Aeq(row, (n+1)*(segment -1)+1:(n+1)*segment) = get_tvec(t_cp,n,0);
+            beq(row) = obstacles(o).position(obsPosIdx) -obstacles.radius - slack;
+
+            row = row+1;
+            Aeq(row, (n+1)*(segment -1)+1:(n+1)*segment) = -get_tvec(t_cp,n,0);
+            beq(row) = -obstacles(o).position(obsPosIdx) -obstacles.radius - slack;
+        end
+    end
+end
+Aeq
+beq
 
 % solve QuadProg
 % options = optimoptions('quadprog','Display','off','MaxIter',4000);
@@ -205,7 +204,6 @@ y_traj = x_traj ; % trajectory of the y position
 k = 1;
 cpx = [];
 cpy = [];
-n = length(polys_x);
 for int = 1:length(t_bounds)-1
     % Iterate over time interval based on time step
     for t = t_bounds(int):Ts:t_bounds(int+1)-Ts
@@ -215,7 +213,7 @@ for int = 1:length(t_bounds)-1
     end
 
     deltaT = t_bounds(int+1) - t_bounds(int);
-    for p=1:n-1
+    for p=1:leng-1
         tcp = t_bounds(int) + (p/n)*deltaT;
         cpx((n-1)*(int-1) + p) = polyval(polys_x(:,int),tcp);  
         cpy((n-1)*(int-1) + p) = polyval(polys_y(:,int),tcp);
@@ -229,7 +227,7 @@ hold on
 plot(waypoints(1,:),waypoints(2,:),'or')
 hold on
 % plot control points
-%plot(cpx,cpy,'og');
+plot(cx,cy,'og');
 
 %plot obstacles
 hold on

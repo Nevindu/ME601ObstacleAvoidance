@@ -55,7 +55,7 @@ B = [1 0;
 
 
 K = [2.2361    0.0000    0.0000;
-    -0.0000    2.2361    4.8933;]
+    -0.0000    2.2361    4.8933;];
 %K = lqr(A,B,Q,R,0);
 
 %% Error dynamics
@@ -63,9 +63,17 @@ e_x = x -Y.y;
 %u_d = [v_d phi_d];
 u_d = [1 0];
 
+
 %% control law
 u = -K*e_x + u_d;
 
 %% Control Inputs
 v = u(1);
 phi = u(2);
+
+% if phi > pi/4
+%     phi = pi/4
+% else phi < -pi/4
+%      phi = -pi/4
+% end
+% phi
